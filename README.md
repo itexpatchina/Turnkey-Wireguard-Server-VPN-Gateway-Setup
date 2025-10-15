@@ -66,11 +66,12 @@ WantedBy=multi-user.target
 
 ---
 
-## 🚀 Step 4: Enable the Service
+## 🚀 Step 4: Enable and Start the Service
 
 ```bash
 sudo systemctl daemon-reexec
 sudo systemctl enable vpnroute.service
+sudo systemctl start vpnroute.service
 ```
 
 ---
@@ -90,6 +91,8 @@ Add the following line at the bottom:
 ```
 
 ---
+
+# Verification and Testing
 
 To verify that your policy-based routing is working as expected, you can use a combination of `ip` commands and packet tracing tools. Here's a step-by-step checklist:
 
