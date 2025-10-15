@@ -98,7 +98,7 @@ To verify that your policy-based routing is working as expected, you can use a c
 
 ---
 
-## ✅ Verify Routing Rules and Tables
+## 🧪 Verify Routing Rules and Tables
 
 ### 1. **Check the rule**
 ```bash
@@ -121,7 +121,6 @@ default via 192.168.3.110 dev eth0
 
 ---
 
-## 🧪 Test Routing Behavior
 
 ### 3. **Use `ip route get` to simulate routing**
 ```bash
