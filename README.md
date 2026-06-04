@@ -26,7 +26,7 @@ Paste the following content:
 ```bash
 #!/bin/bash
 ip rule add from 10.0.0.0/24 table vpnroute
-ip route add default via 192.168.3.110 dev eth0 table vpnroute
+ip route add default via 192.168.3.XXX dev eth0 table vpnroute
 ```
 
 ---
@@ -71,7 +71,6 @@ WantedBy=multi-user.target
 ```bash
 sudo systemctl daemon-reexec
 sudo systemctl enable vpnroute.service
-sudo systemctl start vpnroute.service
 ```
 
 ---
@@ -89,6 +88,11 @@ Add the following line at the bottom:
 ```
 100 vpnroute
 ```
+
+```bash
+sudo systemctl start vpnroute.service
+```
+
 
 ---
 
@@ -116,7 +120,7 @@ ip route show table vpnroute
 ```
 Expected output:
 ```
-default via 192.168.3.110 dev eth0
+default via 192.168.3.XXX dev eth0
 ```
 
 ---
@@ -124,18 +128,18 @@ default via 192.168.3.110 dev eth0
 
 ### 3. **Use `ip route get` to simulate routing**
 ```bash
-ip route get 8.8.8.8 from 10.0.0.123
+ip route get 8.8.8.8 from 10.0.0.0
 ```
-Replace `10.0.0.123` with a valid IP in your subnet. The output should show routing via `192.168.3.110` on `eth0`.
+You can replace `10.0.0.0` with a valid IP in your subnet, provided this IP address has been assigned to a device. The output should show routing via `192.168.3.XXX` on `eth0`.
 
 ### 4. **Use `ping` or `curl` from a source IP**
 If you have a host or container with an IP in `10.0.0.0/24`, try:
 ```bash
-ping -I 10.0.0.123 8.8.8.8
+ping -I 10.0.0.0 8.8.8.8
 ```
 or
 ```bash
-curl --interface 10.0.0.123 https://ifconfig.me
+curl --interface 10.0.0.0 https://ifconfig.me
 ```
 This helps confirm that traffic is exiting via the expected gateway.
 
