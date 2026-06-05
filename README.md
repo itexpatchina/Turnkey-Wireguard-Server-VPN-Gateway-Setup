@@ -152,19 +152,19 @@ Above setting are still required, but when using an Clash Verge gateway (let's s
 ```bash
 # edit global env
 cat >> /etc/environment <<EOF
-http_proxy=http://192.168.3.127:7897
-https_proxy=http://192.168.3.127:7897
-all_proxy=socks5://192.168.3.127:7897
-HTTP_PROXY=http://192.168.3.127:7897
-HTTPS_PROXY=http://192.168.3.127:7897
-ALL_PROXY=socks5://192.168.3.127:7897
+http_proxy=http://192.168.3.XXX:7897
+https_proxy=http://192.168.3.XXX:7897
+all_proxy=socks5://192.168.3.XXX:7897
+HTTP_PROXY=http://192.168.3.XXX:7897
+HTTPS_PROXY=http://192.168.3.XXX:7897
+ALL_PROXY=socks5://192.168.3.XXX:7897
 no_proxy=127.0.0.1,localhost,192.168.3.0/24
 NO_PROXY=127.0.0.1,localhost,192.168.3.0/24
 EOF
 
 # apt proxy config
-echo 'Acquire::http::Proxy "http://192.168.3.127:7897";' > /etc/apt/apt.conf.d/99proxy
-echo 'Acquire::https::Proxy "http://192.168.3.127:7897";' >> /etc/apt/apt.conf.d/99proxy
+echo 'Acquire::http::Proxy "http://192.168.3.XXX:7897";' > /etc/apt/apt.conf.d/99proxy
+echo 'Acquire::https::Proxy "http://192.168.3.XXX:7897";' >> /etc/apt/apt.conf.d/99proxy
 
 source /etc/environment
 ```
