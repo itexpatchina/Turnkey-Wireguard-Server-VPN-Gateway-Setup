@@ -1,145 +1,98 @@
-# Turnkey Wireguard Server VPN Gateway Setup
-This is the guide about how to use a Turnkey Linux Wireguard Server to route the traffic from all connected Wireguard clients to a secondary VPN gateway.
+# Turnkey WireGuard Server & VPN Gateway Setup | Turnkey WireGuard 服务器与 VPN 网关配置
 
-# Pre-requisites
-Firstly, you have alreayd a Turneky Wireguard Server installed on a VM, let's say it's called Wireguard and its LAN IP address is 192.168.1.100 with its Wireguard server IP as 10.0.0.0, whch is the default config right after installation is complete for Turnkey Wireguard Server.
+A comprehensive guide and configuration reference for deploying a **Turnkey Linux WireGuard Server** that routes traffic from connected WireGuard clients through a secondary upstream VPN gateway (such as Astrill, VLESS REALITY, or OpenVPN).
 
-Secondly, you have a VPN gateway server that with IPv4 forward enabled and also tunnel mode enabled (let's say running Clash for Windows as an example) and its LAN IP address is 192.168.0.110 as it has to be in the same LAN with your Wireguard Server
-
-
-# VPN Routing Setup with Policy-Based Routing
-
-This guide demonstrates a textbook implementation of policy-based routing using `ip rule` and `ip route`. It assigns traffic from a specific subnet to a custom routing table and persists the configuration via a systemd service.
+这是一个部署 **Turnkey Linux WireGuard 服务器** 的完整指南与配置参考。该方案可将所有连接的 WireGuard 客户端流量，通过二次上游 VPN 网关（如 Astrill、VLESS REALITY、OpenVPN 等）进行智能重定向与路由。
 
 ---
 
-## 🛠️ Step 1: Create the Routing Script
+## 📐 Network Topology | 网络拓扑架构
 
-Create the script file:
-
-```bash
-sudo nano /usr/local/bin/vpnroute.sh
 ```
-
-Paste the following content:
-
-```bash
-#!/bin/bash
-ip rule add from 10.0.0.0/24 table vpnroute
-ip route add default via 192.168.3.XXX dev eth0 table vpnroute
+[ Remote WireGuard Clients / 远程客户端 ]
+                   │
+                   ▼ (WireGuard Tunnel / 加密隧道)
+    [ Turnkey WireGuard Server (192.168.3.109) ]
+                   │
+                   ▼ (Default Gateway Policy / 默认网关重定向)
+     [ Secondary VPN Gateway (e.g., 192.168.3.140) ]
+                   │
+                   ▼ (Encrypted Egress / 境外加密出口)
+           [ Internet / GFW Bypass ]
 ```
 
 ---
 
-## 🔐 Step 2: Make the Script Executable
+## ✨ Features | 核心功能
+
+### English
+* **Centralised Gateway Routing:** Force all connected WireGuard VPN clients to egress through a designated secondary VPN router or proxy host on the LAN.
+* **Turnkey Linux Integration:** Lightweight, low-overhead Debian-based Turnkey Linux container/VM setup running on ESXi.
+* **Automated NAT & Forwarding:** Configured with `iptables` rules and kernel IP forwarding (`net.ipv4.ip_forward=1`).
+* **Cross-Border Optimization:** Bypasses local network restrictions (GFW) for all connected home and mobile devices.
+
+### 中文说明
+* **集中式网关路由：** 强制所有已连接的 WireGuard VPN 客户端通过局域网内指定的二次 VPN 路由器或代理主机出口。
+* **Turnkey Linux 集成：** 基于 ESXi 上的轻量级 Debian Turnkey Linux 容器/虚拟机构建，内存与 CPU 占用极低。
+* **自动 NAT 与转发：** 预配置 `iptables` MASQUERADE 规则与内核 IP 转发（`net.ipv4.ip_forward=1`）。
+* **跨境网络优化：** 为所有连入的移动设备与远程终端提供无缝的 GFW 绕过与网络加速能力。
+
+---
+
+## 🛠️ Quick Setup Guide | 快速部署指南
+
+### 1. Enable IP Forwarding | 开启 IP 转发
+
+On your Turnkey WireGuard server, ensure IPv4 packet forwarding is enabled:
+
+在 Turnkey WireGuard 服务器上开启内核 IPv4 数据包转发：
 
 ```bash
-sudo chmod +x /usr/local/bin/vpnroute.sh
+echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
 ```
 
 ---
 
-## ⚙️ Step 3: Create a Systemd Service
+### 2. Configure WireGuard Interface (`/etc/wireguard/wg0.conf`) | 配置 WireGuard 接口
 
-Create the service file:
+Edit `/etc/wireguard/wg0.conf` to set up PostUp / PostDown rules for NAT masquerading:
 
-```bash
-sudo nano /etc/systemd/system/vpnroute.service
-```
-
-Paste the following content:
+编辑 `/etc/wireguard/wg0.conf` 文件，设置 NAT 地址伪装与防火墙规则：
 
 ```ini
-[Unit]
-Description=Apply vpnroute routing rules
-After=network-online.target
-Wants=network-online.target
+[Interface]
+Address = 10.8.0.1/24
+ListenPort = 51820
+PrivateKey = <SERVER_PRIVATE_KEY>
 
-[Service]
-ExecStart=/usr/local/bin/vpnroute.sh
-Type=oneshot
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
+# Add iptables rules for NAT masquerade
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 ```
 
 ---
 
-## 🚀 Step 4: Enable and Start the Service
+### 3. Change Default Gateway | 修改默认网关
+
+To route all outbound client traffic through the secondary VPN gateway (e.g., `192.168.3.140`):
+
+若需将所有客户端出口流量通过二次 VPN 网关（例如 `192.168.3.140`）转发：
 
 ```bash
-sudo systemctl daemon-reexec
-sudo systemctl enable vpnroute.service
+# Remove current default gateway
+sudo ip route del default
+
+# Set the secondary VPN gateway as default
+sudo ip route add default via 192.168.3.140 dev eth0
 ```
 
 ---
 
-## 📁 Step 5: Register the Routing Table
+## 📄 License & Usage | 许可证与使用说明
 
-Edit the routing tables file:
+Licensed under the **GNU General Public License v3.0**.  
+本项目遵循 **GNU General Public License v3.0** 开源许可证。
 
-```bash
-sudo nano /etc/iproute2/rt_tables
-```
-
-Add the following line at the bottom:
-
-```
-100 vpnroute
-```
-
-```bash
-sudo systemctl start vpnroute.service
-```
-
-
----
-
-# Verification and Testing
-
-To verify that your policy-based routing is working as expected, you can use a combination of `ip` commands and packet tracing tools. Here's a step-by-step checklist:
-
----
-
-## 🧪 Verify Routing Rules and Tables
-
-### 1. **Check the rule**
-```bash
-ip rule show
-```
-You should see a line like:
-```
-0:      from all lookup local
-100:    from 10.0.0.0/24 lookup vpnroute
-```
-
-### 2. **Inspect the routing table**
-```bash
-ip route show table vpnroute
-```
-Expected output:
-```
-default via 192.168.3.XXX dev eth0
-```
-
----
-
-
-### 3. **Use `ip route get` to simulate routing**
-```bash
-ip route get 8.8.8.8 from 10.0.0.0
-```
-You can replace `10.0.0.0` with a valid IP in your subnet, provided this IP address has been assigned to a device. The output should show routing via `192.168.3.XXX` on `eth0`.
-
-### 4. **Use `ping` or `curl` from a source IP**
-If you have a host or container with an IP in `10.0.0.0/24`, try:
-```bash
-ping -I 10.0.0.0 8.8.8.8
-```
-or
-```bash
-curl --interface 10.0.0.0 https://ifconfig.me
-```
-This helps confirm that traffic is exiting via the expected gateway.
-
+*Disclaimer: This repository is intended for homelab research and network routing experiments.*  
+*免责声明：本项目仅供 Homelab 网络研究与个人路由实验使用。*
