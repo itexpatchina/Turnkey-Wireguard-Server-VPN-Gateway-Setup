@@ -155,32 +155,3 @@ curl --interface 10.0.0.0 https://ifconfig.me
 
 This helps confirm that traffic is exiting via the expected gateway.
 > 这有助于确认流量是否通过预期的网关出口。
-
----
-
-## Clash Verge on Win10 as Gateway - added on 2026-05-06
-> **使用 Win10 上的 Clash Verge 作为网关 - 2026-05-06 补充**
-
-Above setting are still required, but when using an Clash Verge gateway (let's say 192.168.3.XXX:7897), you'll have to set up also the gloabl environment variables to enable global, system-wide proxy.
-> 上述设置依然是必需的，但当使用 Clash Verge 作为网关时（假设为 192.168.3.XXX:7897），你还必须配置全局环境变量以启用系统级全局代理。
-
-```bash
-# edit global env
-cat >> /etc/environment <<EOF
-http_proxy=http://192.168.3.XXX:7897
-https_proxy=http://192.168.3.XXX:7897
-all_proxy=socks5://192.168.3.XXX:7897
-HTTP_PROXY=http://192.168.3.XXX:7897
-HTTPS_PROXY=http://192.168.3.XXX:7897
-ALL_PROXY=socks5://192.168.3.XXX:7897
-no_proxy=127.0.0.1,localhost,192.168.3.0/24
-NO_PROXY=127.0.0.1,localhost,192.168.3.0/24
-EOF
-
-# apt proxy config
-echo 'Acquire::http::Proxy "http://192.168.3.XXX:7897";' > /etc/apt/apt.conf.d/99proxy
-echo 'Acquire::https::Proxy "http://192.168.3.XXX:7897";' >> /etc/apt/apt.conf.d/99proxy
-
-source /etc/environment
-```
-
